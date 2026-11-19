@@ -7,15 +7,31 @@ const squadRouter = require('./routes/squad');
 
 const app = express();
 const port = Number.parseInt(process.env.PORT, 10) || 3000;
-const allowedOrigins = (process.env.FRONTEND_ORIGIN || 'http://localhost:3000,http://127.0.0.1:3000')
-  .split(',')
-  .map((origin) => origin.trim())
+function normalizeOrigin(origin) {
+  try {
+    const parsed = new URL(origin);
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') return null;
+    return parsed.origin;
+  } catch {
+    return null;
+  }
+}
+
+const configuredOrigins = [
+  ...(process.env.FRONTEND_ORIGIN || 'http://localhost:3000,http://127.0.0.1:3000').split(','),
+  // Render provides this URL at runtime. It is useful for same-service browser tests;
+  // separate frontend services still need to be listed in FRONTEND_ORIGIN.
+  process.env.RENDER_EXTERNAL_URL,
+].filter(Boolean);
+
+const allowedOrigins = configuredOrigins
+  .map((origin) => normalizeOrigin(origin.trim()))
   .filter(Boolean);
 
 app.use(cors({
   origin(origin, callback) {
     // Requests without an Origin header are usually same-origin or server-side.
-    if (!origin || allowedOrigins.includes(origin)) return callback(null, true);
+    if (!origin || allowedOrigins.includes(normalizeOrigin(origin))) return callback(null, true);
     const error = new Error('Origin is not allowed by CORS');
     error.status = 403;
     return callback(error);
