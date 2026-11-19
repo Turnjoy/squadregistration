@@ -73,7 +73,7 @@ async function generateWithTimeout(ai, model, contents, timeoutMs) {
         contents,
         config: {
           abortSignal: controller.signal,
-          maxOutputTokens: 2048,
+          maxOutputTokens: 1024,
           responseMimeType: 'application/json',
           responseSchema: schema,
           thinkingConfig: { thinkingLevel: 'MINIMAL' },
@@ -128,7 +128,7 @@ async function matchSquad(files) {
   const models = [process.env.GEMINI_FAST_MODEL || DEFAULTS.primary];
   const maxCalls = 1;
   // Never let a stale Render setting turn a slow provider call into a multi-minute wait.
-  const timeoutMs = Math.min(positiveInt(process.env.GEMINI_PROCESSING_TIMEOUT_MS, 15000), 15000);
+  const timeoutMs = Math.min(positiveInt(process.env.GEMINI_PROCESSING_TIMEOUT_MS, 25000), 25000);
   const deadline = Date.now() + timeoutMs;
   let calls = 0;
   let lastError;
