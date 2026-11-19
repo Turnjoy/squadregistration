@@ -96,7 +96,7 @@
       files.forEach((file) => form.append('screenshots', file));
       scanButton.disabled = true;
       scanButton.innerHTML = '<i class="spinner" aria-hidden="true"></i> Reading screenshots…';
-      setStatus('Reading the full squad and ratings from the pitch view, then matching player names from inventory screenshots.');
+      setStatus('Reading the pitch view and matching names. If several scans are running, yours waits its turn.');
       try {
         const response = await fetch('/api/register-squad', { method: 'POST', body: form });
         const result = await response.json().catch(() => ({}));

@@ -5,6 +5,37 @@ const DEFAULTS = {
   fallback: 'gemini-3.5-flash',
 };
 
+const MAX_CONCURRENT_GEMINI_CALLS = 3;
+const MAX_QUEUED_SQUADS = 30;
+let activeGeminiCalls = 0;
+const geminiWaitQueue = [];
+
+function acquireGeminiSlot() {
+  return new Promise((resolve, reject) => {
+    const grant = () => {
+      activeGeminiCalls += 1;
+      let released = false;
+      resolve(() => {
+        if (released) return;
+        released = true;
+        activeGeminiCalls -= 1;
+        const next = geminiWaitQueue.shift();
+        if (next) next();
+      });
+    };
+
+    if (activeGeminiCalls < MAX_CONCURRENT_GEMINI_CALLS) {
+      grant();
+    } else if (geminiWaitQueue.length >= MAX_QUEUED_SQUADS) {
+      const error = new Error('Squad scans are busy. Please retry in a minute.');
+      error.status = 503;
+      reject(error);
+    } else {
+      geminiWaitQueue.push(grant);
+    }
+  });
+}
+
 const schema = {
   type: 'OBJECT',
   properties: {
@@ -125,6 +156,15 @@ async function matchSquad(files) {
     throw error;
   }
 
+  const releaseSlot = await acquireGeminiSlot();
+  try {
+    return await analyzeSquad(files);
+  } finally {
+    releaseSlot();
+  }
+}
+
+async function analyzeSquad(files) {
   const aiOptions = {
     apiKey: process.env.GEMINI_API_KEY,
     httpOptions: { retryOptions: { attempts: 1 } },
