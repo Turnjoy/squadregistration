@@ -8,6 +8,7 @@ const DEFAULTS = {
 const schema = {
   type: 'OBJECT',
   properties: {
+    collective_strength: { type: 'INTEGER' },
     starting_xi: {
       type: 'ARRAY',
       minItems: 11,
@@ -37,10 +38,10 @@ const schema = {
       },
     },
   },
-  required: ['starting_xi', 'substitutes'],
+  required: ['collective_strength', 'starting_xi', 'substitutes'],
 };
 
-const prompt = `Read the eFootball squad screenshots. Image 1 is the pitch view; the remaining images show player lists. Match the pitch positions and boosted ratings to full names in the lists. Return exactly 11 starting_xi and 12 substitutes with position, name, and integer rating. Do not invent players; estimate only when text is unclear. Use standard position abbreviations (GK, CB, LB, RB, DMF, CMF, AMF, LWF, RWF, SS, CF). Return JSON only.`;
+const prompt = `Image 1 is the full squad pitch view and is the source of truth for all 23 squad slots, their positions, their boosted player ratings, and the displayed Collective Strength. Read exactly 11 Starting XI and 12 Substitute/Reserve slots from that image. Use later inventory screenshots only to identify the names of those same players by matching card portraits and positions. Do not take ratings or add players from inventory screenshots. Every squad player must appear exactly once across both lists; inventory screenshots may repeat the same player across pages, so deduplicate them. Return the Collective Strength shown beside its label in the pitch view. If a player name cannot be matched, use the clearest visible name for that pitch slot without duplicating another player. Use standard position abbreviations (GK, CB, LB, RB, DMF, CMF, AMF, LWF, RWF, SS, CF). Return JSON only.`;
 
 function positiveInt(value, fallback) {
   const parsed = Number.parseInt(value, 10);
@@ -50,6 +51,7 @@ function positiveInt(value, fallback) {
 function isRetryableProviderError(error) {
   const status = Number(error?.status);
   return status === 429 || (status >= 500 && status < 600)
+    || error?.code === 'EDUPLICATE_PLAYER'
     || /retryable http error|service unavailable|temporarily unavailable/i.test(error?.message || '');
 }
 
@@ -58,6 +60,10 @@ function validateSquad(value) {
       || value.starting_xi.length !== 11 || value.substitutes.length !== 12) {
     throw new Error('Gemini did not return exactly 11 starters and 12 substitutes. Please try clearer screenshots.');
   }
+  if (!Number.isInteger(value.collective_strength) || value.collective_strength < 1 || value.collective_strength > 5000) {
+    throw new Error('Gemini did not read the Collective Strength from the pitch screenshot. Please upload a clearer pitch view.');
+  }
+  const seenNames = new Set();
   for (const player of [...value.starting_xi, ...value.substitutes]) {
     if (!player || typeof player.name !== 'string' || !player.name.trim()
         || typeof player.position !== 'string' || !player.position.trim()
@@ -66,8 +72,19 @@ function validateSquad(value) {
     }
     player.name = player.name.trim();
     player.position = player.position.trim().toUpperCase();
+    const normalizedName = player.name.normalize('NFKD').replace(/\p{M}/gu, '').toLowerCase().replace(/[^a-z0-9]+/g, ' ').trim();
+    if (seenNames.has(normalizedName)) {
+      const error = new Error(`Duplicate player detected: ${player.name}.`);
+      error.code = 'EDUPLICATE_PLAYER';
+      throw error;
+    }
+    seenNames.add(normalizedName);
   }
-  return { starting_xi: value.starting_xi, substitutes: value.substitutes };
+  return {
+    collective_strength: value.collective_strength,
+    starting_xi: value.starting_xi,
+    substitutes: value.substitutes,
+  };
 }
 
 async function generateWithTimeout(ai, model, contents, timeoutMs) {
@@ -147,7 +164,13 @@ async function matchSquad(files) {
     if (calls >= maxCalls || Date.now() >= deadline) break;
     calls += 1;
     try {
-      const response = await generateWithTimeout(ai, model, contents, Math.max(1, deadline - Date.now()));
+      const attemptContents = lastError?.code === 'EDUPLICATE_PLAYER'
+        ? [
+          { ...contents[0], text: `${contents[0].text}\nThe previous response repeated a player. Re-check the pitch slots and return 23 unique names; do not repeat ${lastError.message.replace(/^Duplicate player detected: /, '').replace(/\.$/, '')}.` },
+          ...contents.slice(1),
+        ]
+        : contents;
+      const response = await generateWithTimeout(ai, model, attemptContents, Math.max(1, deadline - Date.now()));
       const text = response.text;
       if (!text) throw new Error('Gemini returned an empty response.');
       return validateSquad(JSON.parse(text));

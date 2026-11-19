@@ -31,7 +31,7 @@
     </section>
 
     <section class="card upload-card" aria-labelledby="upload-title">
-      <div class="section-head"><div><h2 id="upload-title">Upload squad screenshots</h2><p>Choose the pitch view first, then add player list screenshots.</p></div><span class="count" id="fileCount">0 / 13</span></div>
+      <div class="section-head"><div><h2 id="upload-title">Upload squad screenshots</h2><p>Upload the full pitch view first. Add inventory screenshots to cross-reference player names.</p></div><span class="count" id="fileCount">0 / 13</span></div>
       <div class="drop" id="dropZone">
         <div class="upload-icon" aria-hidden="true">↑</div><strong>Drop your screenshots here</strong><span>PNG, JPG, WEBP and other image formats</span>
         <label class="file-label" for="screenshots">Browse images</label>
@@ -43,13 +43,13 @@
     </section>
 
     <section class="results" id="results" aria-labelledby="review-title">
-      <div class="results-top"><div><div class="eyebrow">Your lineup</div><h2 id="review-title">Review and edit</h2><p>Correct any details below. Your total updates as you type.</p></div><div class="summary"><span class="pill"><b>11</b> starters</span><span class="pill"><b>12</b> substitutes</span></div></div>
+      <div class="results-top"><div><div class="eyebrow">Your lineup</div><h2 id="review-title">Review and edit</h2><p>Player ratings come from the pitch view; names are cross-referenced from inventory screenshots.</p></div><div class="summary"><span class="pill"><b>11</b> starters</span><span class="pill"><b>12</b> substitutes</span></div></div>
       <div class="squad-grid">
         <section class="card roster" aria-labelledby="starting-title"><div class="roster-title"><h3 id="starting-title">Starting XI</h3><span>Position · Player · Rating</span></div><div id="startingRows"></div></section>
         <section class="card roster" aria-labelledby="subs-title"><div class="roster-title"><h3 id="subs-title">Substitutes / Reserves</h3><span>12 players</span></div><div id="subRows"></div></section>
       </div>
       <section class="card extra" aria-labelledby="extra-title"><div class="extra-head"><div><h3 id="extra-title">Additional / Extra Players <span class="optional">OPTIONAL · 2 MAX</span></h3><p>Add up to two more players to bring your registered squad to 25.</p></div></div><div id="manualRows"></div></section>
-      <section class="card print-card" aria-labelledby="print-title"><div class="print-head"><h3 id="print-title">Copy-ready squad list</h3><button class="secondary" id="copyButton" type="button">▢ &nbsp;Copy Squad List</button></div><pre class="printout" id="printout"></pre><div class="total"><span>Total Boosted Rating</span><strong id="totalRating">0</strong></div></section>
+      <section class="card print-card" aria-labelledby="print-title"><div class="print-head"><h3 id="print-title">Copy-ready squad list</h3><button class="secondary" id="copyButton" type="button">▢ &nbsp;Copy Squad List</button></div><pre class="printout" id="printout"></pre><div class="total"><span>Collective Strength</span><strong id="collectiveStrength">—</strong></div><div class="total"><span>Sum of Player Ratings</span><strong id="totalRating">0</strong></div></section>
     </section>
     <footer class="footer">Squadroom · Built for tournament managers</footer>
   </main>
@@ -96,7 +96,7 @@
       files.forEach((file) => form.append('screenshots', file));
       scanButton.disabled = true;
       scanButton.innerHTML = '<i class="spinner" aria-hidden="true"></i> Reading screenshots…';
-      setStatus('Matching the pitch view to the player lists. This can take a little while.');
+      setStatus('Reading the full squad and ratings from the pitch view, then matching player names from inventory screenshots.');
       try {
         const response = await fetch('/api/register-squad', { method: 'POST', body: form });
         const result = await response.json().catch(() => ({}));
@@ -185,7 +185,9 @@
         }
       });
       if (extraPlayers.length) lines.push('ADDITIONAL / EXTRA PLAYERS', ...extraPlayers, '');
-      document.getElementById('printout').textContent = `${lines.join('\n').trim()}\n\nTotal Boosted Rating: ${total}`;
+      const collectiveStrength = Number.isInteger(squad.collective_strength) ? squad.collective_strength : '—';
+      document.getElementById('printout').textContent = `${lines.join('\n').trim()}\n\nCollective Strength: ${collectiveStrength}\nSum of Player Ratings: ${total}`;
+      document.getElementById('collectiveStrength').textContent = String(collectiveStrength);
       document.getElementById('totalRating').textContent = String(total);
     }
 
