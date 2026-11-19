@@ -1,9 +1,7 @@
 const { GoogleGenAI } = require('@google/genai');
 
 const DEFAULTS = {
-  primary: 'gemini-2.5-flash',
-  fallback: 'gemini-2.0-flash',
-  tertiary: 'gemini-2.5-pro',
+  primary: 'gemini-3.5-flash-lite',
 };
 
 const schema = {
@@ -41,7 +39,7 @@ const schema = {
   required: ['starting_xi', 'substitutes'],
 };
 
-const prompt = `You are reading eFootball squad screenshots. The first uploaded image is the pitch/formation overview. The remaining images, if any, are player list screenshots. Cross-reference the card avatars, displayed positions, and boosted overall ratings in the pitch view with the full player names visible in the list screenshots. Extract all 23 distinct squad players: exactly 11 Starting XI and 12 Substitutes/Reserves. Keep the boosted rating shown on the pitch card when it is visible; otherwise use the rating shown for that player in the list. Do not invent players or ratings. If a detail is hard to read, make the best visual estimate. Return only JSON matching the requested schema, with no markdown or extra keys. Use conventional eFootball position abbreviations such as GK, CB, LB, RB, DMF, CMF, AMF, LWF, RWF, SS, CF.`;
+const prompt = `Read the eFootball squad screenshots. Image 1 is the pitch view; the remaining images show player lists. Match the pitch positions and boosted ratings to full names in the lists. Return exactly 11 starting_xi and 12 substitutes with position, name, and integer rating. Do not invent players; estimate only when text is unclear. Use standard position abbreviations (GK, CB, LB, RB, DMF, CMF, AMF, LWF, RWF, SS, CF). Return JSON only.`;
 
 function positiveInt(value, fallback) {
   const parsed = Number.parseInt(value, 10);
@@ -75,8 +73,10 @@ async function generateWithTimeout(ai, model, contents, timeoutMs) {
         contents,
         config: {
           abortSignal: controller.signal,
+          maxOutputTokens: 2048,
           responseMimeType: 'application/json',
           responseSchema: schema,
+          thinkingConfig: { thinkingLevel: 'MINIMAL' },
           temperature: 0.1,
         },
       }),
@@ -101,7 +101,18 @@ async function matchSquad(files) {
     throw error;
   }
 
-  const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
+  const aiOptions = {
+    apiKey: process.env.GEMINI_API_KEY,
+    httpOptions: { retryOptions: { attempts: 1 } },
+  };
+  if (process.env.GEMINI_API_BASE_URL) {
+    // Allows the local load-test harness to substitute a fake Gemini HTTP API.
+    aiOptions.httpOptions = {
+      baseUrl: process.env.GEMINI_API_BASE_URL,
+      retryOptions: { attempts: 1 },
+    };
+  }
+  const ai = new GoogleGenAI(aiOptions);
   const contents = [
     { text: `${prompt}\n\nImages are provided in upload order. Image 1 must be treated as the pitch view.` },
     ...files.map((file, index) => ({
@@ -114,20 +125,16 @@ async function matchSquad(files) {
     })),
   ];
 
-  const models = [
-    process.env.GEMINI_PRIMARY_MODEL || DEFAULTS.primary,
-    process.env.GEMINI_FALLBACK_MODEL || DEFAULTS.fallback,
-    process.env.GEMINI_TERTIARY_MODEL || DEFAULTS.tertiary,
-  ].filter((model, index, all) => model && all.indexOf(model) === index);
-  const retryLimit = positiveInt(process.env.GEMINI_RETRY_LIMIT, 1);
-  const maxCalls = positiveInt(process.env.GEMINI_MAX_CALLS, 6);
-  const timeoutMs = positiveInt(process.env.GEMINI_PROCESSING_TIMEOUT_MS, 60000);
+  const models = [process.env.GEMINI_FAST_MODEL || DEFAULTS.primary];
+  const maxCalls = 1;
+  // Never let a stale Render setting turn a slow provider call into a multi-minute wait.
+  const timeoutMs = Math.min(positiveInt(process.env.GEMINI_PROCESSING_TIMEOUT_MS, 15000), 15000);
   const deadline = Date.now() + timeoutMs;
   let calls = 0;
   let lastError;
 
   for (const model of models) {
-    for (let attempt = 0; attempt <= retryLimit && calls < maxCalls && Date.now() < deadline; attempt += 1) {
+    for (let attempt = 0; attempt < maxCalls && Date.now() < deadline; attempt += 1) {
       calls += 1;
       try {
         const response = await generateWithTimeout(ai, model, contents, Math.max(1, deadline - Date.now()));
