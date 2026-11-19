@@ -2,6 +2,7 @@ const { GoogleGenAI } = require('@google/genai');
 
 const DEFAULTS = {
   primary: 'gemini-3.5-flash-lite',
+  fallback: 'gemini-3.5-flash',
 };
 
 const schema = {
@@ -44,6 +45,12 @@ const prompt = `Read the eFootball squad screenshots. Image 1 is the pitch view;
 function positiveInt(value, fallback) {
   const parsed = Number.parseInt(value, 10);
   return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback;
+}
+
+function isRetryableProviderError(error) {
+  const status = Number(error?.status);
+  return status === 429 || (status >= 500 && status < 600)
+    || /retryable http error|service unavailable|temporarily unavailable/i.test(error?.message || '');
 }
 
 function validateSquad(value) {
@@ -125,8 +132,11 @@ async function matchSquad(files) {
     })),
   ];
 
-  const models = [process.env.GEMINI_FAST_MODEL || DEFAULTS.primary];
-  const maxCalls = 1;
+  const models = [
+    process.env.GEMINI_FAST_MODEL || DEFAULTS.primary,
+    process.env.GEMINI_FAST_FALLBACK_MODEL || DEFAULTS.fallback,
+  ].filter((model, index, all) => model && all.indexOf(model) === index);
+  const maxCalls = models.length;
   // Never let a stale Render setting turn a slow provider call into a multi-minute wait.
   const timeoutMs = Math.min(positiveInt(process.env.GEMINI_PROCESSING_TIMEOUT_MS, 25000), 25000);
   const deadline = Date.now() + timeoutMs;
@@ -134,18 +144,17 @@ async function matchSquad(files) {
   let lastError;
 
   for (const model of models) {
-    for (let attempt = 0; attempt < maxCalls && Date.now() < deadline; attempt += 1) {
-      calls += 1;
-      try {
-        const response = await generateWithTimeout(ai, model, contents, Math.max(1, deadline - Date.now()));
-        const text = response.text;
-        if (!text) throw new Error('Gemini returned an empty response.');
-        return validateSquad(JSON.parse(text));
-      } catch (error) {
-        lastError = error;
-      }
-    }
     if (calls >= maxCalls || Date.now() >= deadline) break;
+    calls += 1;
+    try {
+      const response = await generateWithTimeout(ai, model, contents, Math.max(1, deadline - Date.now()));
+      const text = response.text;
+      if (!text) throw new Error('Gemini returned an empty response.');
+      return validateSquad(JSON.parse(text));
+    } catch (error) {
+      lastError = error;
+      if (!isRetryableProviderError(error)) break;
+    }
   }
 
   const error = new Error(`Could not read the squad after ${calls} Gemini call(s). ${lastError?.message || ''}`.trim());
