@@ -1,0 +1,209 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#071b16">
+  <title>Squadroom — eFootball squad registration</title>
+  <style>
+    :root{color-scheme:dark;--bg:#071b16;--panel:#0e2921;--panel2:#123329;--line:#285143;--text:#f3f7ef;--muted:#a8c1b3;--lime:#c9f36a;--lime-dark:#14250c;--coral:#ff9d78;--radius:20px;--shadow:0 24px 70px #020d0a66}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 88% -10%,#28513c 0,transparent 40%),var(--bg);color:var(--text);font:15px/1.5 Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}button,input{font:inherit}button{cursor:pointer} .wrap{width:min(1120px,calc(100% - 36px));margin:auto;padding:30px 0 64px}
+    .top{display:flex;align-items:center;justify-content:space-between;margin-bottom:50px}.brand{display:flex;align-items:center;gap:11px;font-size:16px;font-weight:800;letter-spacing:.03em}.brand-mark{display:grid;place-items:center;width:36px;height:36px;color:var(--lime);border:1px solid #8db94a;border-radius:12px;background:#18342a}.privacy{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:12px}.dot{width:7px;height:7px;background:var(--lime);border-radius:50%;box-shadow:0 0 12px #c9f36a}
+    .hero{display:grid;grid-template-columns:1.1fr .9fr;gap:35px;align-items:end;margin-bottom:35px}.eyebrow{color:var(--lime);font-size:11px;font-weight:800;letter-spacing:.2em;text-transform:uppercase}.hero h1{max-width:650px;margin:12px 0;font-size:clamp(36px,6vw,66px);line-height:.98;letter-spacing:-.055em}.hero h1 span{color:var(--lime)}.hero p{max-width:570px;margin:15px 0 0;color:var(--muted);font-size:16px}.steps{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}.step{padding:9px 12px;border:1px solid var(--line);border-radius:999px;color:var(--muted);font-size:11px}.step b{margin-right:6px;color:var(--lime)}
+    .card{border:1px solid var(--line);border-radius:var(--radius);background:linear-gradient(145deg,#103027,#0b231d 72%);box-shadow:var(--shadow)}.upload-card{padding:24px}.section-head{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;margin-bottom:18px}.section-head h2{margin:0;font-size:18px;letter-spacing:-.02em}.section-head p{margin:4px 0 0;color:var(--muted);font-size:13px}.count{white-space:nowrap;color:var(--muted);font-size:12px}.drop{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:180px;padding:22px;border:1px dashed #527566;border-radius:16px;background:#081d17;text-align:center;transition:.18s}.drop.over{border-color:var(--lime);background:#142c20}.upload-icon{display:grid;place-items:center;width:42px;height:42px;margin-bottom:10px;border-radius:14px;background:#1b3b2e;color:var(--lime)}.drop strong{font-size:15px}.drop span{color:var(--muted);font-size:12px}.file-label{display:inline-flex;margin-top:13px;padding:8px 13px;border:1px solid #456b57;border-radius:10px;color:var(--lime);font-size:12px;font-weight:700;cursor:pointer}.file-label:hover{background:#18352a}input[type=file]{position:absolute;width:1px;height:1px;clip:rect(0,0,0,0);overflow:hidden}.selected{width:100%;max-width:680px;margin-top:14px;display:flex;gap:7px;flex-wrap:wrap;justify-content:center}.file-chip{padding:5px 8px;border:1px solid #305343;border-radius:8px;color:#cfe0d5;font-size:11px;overflow-wrap:anywhere}.upload-note{margin:13px 0 0;color:#89a89a;font-size:11px;text-align:center}.actions{display:flex;align-items:center;gap:12px;margin-top:17px}.primary,.secondary{display:inline-flex;align-items:center;justify-content:center;gap:9px;min-height:45px;padding:0 19px;border:0;border-radius:12px;font-weight:800}.primary{background:var(--lime);color:var(--lime-dark)}.primary:hover{background:#d9ff82;transform:translateY(-1px)}.primary:disabled{opacity:.55;cursor:wait;transform:none}.status{min-height:20px;color:var(--muted);font-size:12px}.status.error{color:var(--coral)}.spinner{width:15px;height:15px;border:2px solid #314a35;border-top-color:#14250c;border-radius:50%;animation:spin .7s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+    .results{display:none;margin-top:26px}.results.visible{display:block}.results-top{display:flex;align-items:flex-end;justify-content:space-between;gap:20px;margin:31px 0 14px}.results-top h2{margin:0;font-size:25px;letter-spacing:-.04em}.results-top p{margin:4px 0 0;color:var(--muted);font-size:13px}.summary{display:flex;gap:9px}.pill{padding:7px 10px;border:1px solid var(--line);border-radius:99px;color:var(--muted);font-size:11px}.pill b{color:var(--text)}
+    .squad-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.roster{padding:20px}.roster-title{display:flex;align-items:center;justify-content:space-between;margin-bottom:13px}.roster-title h3{margin:0;font-size:15px}.roster-title span{color:var(--muted);font-size:11px}.player-row{display:grid;grid-template-columns:40px 64px minmax(0,1fr) 77px;gap:8px;align-items:center;margin:7px 0}.player-row input,.manual-row input{width:100%;min-width:0;height:38px;padding:0 10px;border:1px solid #315747;border-radius:9px;outline:0;background:#081e18;color:var(--text);font-size:12px}.player-row input:focus,.manual-row input:focus{border-color:var(--lime);box-shadow:0 0 0 2px #c9f36a20}.player-row input.rating{text-align:center;font-weight:800;color:var(--lime)}.player-index{color:#77988a;font-size:10px;text-align:center}.extra{margin-top:16px;padding:20px}.extra-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}.extra h3{margin:0;font-size:15px}.extra p{margin:4px 0 13px;color:var(--muted);font-size:12px}.manual-row{display:grid;grid-template-columns:1fr 110px;gap:10px;margin:8px 0}.manual-row input:last-child{text-align:center;font-weight:800;color:var(--lime)}.optional{color:#79998b;font-size:10px}
+    .print-card{margin-top:16px;padding:20px}.print-head{display:flex;align-items:center;justify-content:space-between;gap:14px;margin-bottom:11px}.print-head h3{margin:0;font-size:15px}.secondary{min-height:38px;padding:0 13px;border:1px solid #476b56;background:#153428;color:var(--text);font-size:11px}.secondary:hover{border-color:var(--lime);color:var(--lime)}.printout{min-height:70px;margin:0;padding:14px;border:1px solid #274a3a;border-radius:12px;background:#071a15;color:#dce9df;white-space:pre-wrap;overflow-wrap:anywhere;font:12px/1.8 ui-monospace,SFMono-Regular,Consolas,monospace}.total{display:flex;align-items:center;justify-content:space-between;margin-top:13px;padding:13px 15px;border-radius:12px;background:#1b382a}.total span{color:#d3e4d5;font-size:12px}.total strong{color:var(--lime);font-size:21px;font-variant-numeric:tabular-nums}.footer{margin-top:29px;color:#6f9181;font-size:11px;text-align:center}
+    @media(max-width:760px){.top{margin-bottom:34px}.hero{grid-template-columns:1fr;gap:19px}.steps{justify-content:flex-start}.squad-grid{grid-template-columns:1fr}.hero h1{font-size:clamp(42px,12vw,60px)}.results-top{align-items:flex-start;flex-direction:column}.wrap{width:min(100% - 24px,640px);padding-top:18px}.upload-card,.roster,.extra,.print-card{padding:16px}}
+    @media(max-width:420px){.privacy{font-size:10px}.actions{align-items:stretch;flex-direction:column}.primary{width:100%}.player-row{grid-template-columns:27px 52px minmax(0,1fr) 59px;gap:5px}.player-row input,.manual-row input{padding:0 7px;font-size:11px}.manual-row{grid-template-columns:minmax(0,1fr) 78px}.section-head{align-items:flex-start}.count{font-size:10px}}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <header class="top">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span> SQUADROOM</div>
+      <div class="privacy"><i class="dot"></i> Screenshots processed in memory</div>
+    </header>
+
+    <section class="hero">
+      <div><div class="eyebrow">Tournament squad registration</div><h1>Get your squad<br><span>match ready.</span></h1><p>Scan your eFootball lineup, check every player and rating, then copy a clean squad list for your tournament entry.</p></div>
+      <div class="steps" aria-label="Workflow"><span class="step"><b>01</b> Upload</span><span class="step"><b>02</b> Review</span><span class="step"><b>03</b> Share</span></div>
+    </section>
+
+    <section class="card upload-card" aria-labelledby="upload-title">
+      <div class="section-head"><div><h2 id="upload-title">Upload squad screenshots</h2><p>Choose the pitch view first, then add player list screenshots.</p></div><span class="count" id="fileCount">0 / 13</span></div>
+      <div class="drop" id="dropZone">
+        <div class="upload-icon" aria-hidden="true">↑</div><strong>Drop your screenshots here</strong><span>PNG, JPG, WEBP and other image formats</span>
+        <label class="file-label" for="screenshots">Browse images</label>
+        <input id="screenshots" type="file" accept="image/*" multiple>
+        <div class="selected" id="selectedFiles" aria-live="polite"></div>
+      </div>
+      <p class="upload-note">Up to 13 images · Maximum 12 MB each · Images are held in server memory only while they are analyzed.</p>
+      <div class="actions"><button class="primary" id="scanButton" type="button">Scan my squad <span aria-hidden="true">→</span></button><div class="status" id="status" role="status" aria-live="polite"></div></div>
+    </section>
+
+    <section class="results" id="results" aria-labelledby="review-title">
+      <div class="results-top"><div><div class="eyebrow">Your lineup</div><h2 id="review-title">Review and edit</h2><p>Correct any details below. Your total updates as you type.</p></div><div class="summary"><span class="pill"><b>11</b> starters</span><span class="pill"><b>12</b> substitutes</span></div></div>
+      <div class="squad-grid">
+        <section class="card roster" aria-labelledby="starting-title"><div class="roster-title"><h3 id="starting-title">Starting XI</h3><span>Position · Player · Rating</span></div><div id="startingRows"></div></section>
+        <section class="card roster" aria-labelledby="subs-title"><div class="roster-title"><h3 id="subs-title">Substitutes / Reserves</h3><span>12 players</span></div><div id="subRows"></div></section>
+      </div>
+      <section class="card extra" aria-labelledby="extra-title"><div class="extra-head"><div><h3 id="extra-title">Additional / Extra Players <span class="optional">OPTIONAL · 2 MAX</span></h3><p>Add up to two more players to bring your registered squad to 25.</p></div></div><div id="manualRows"></div></section>
+      <section class="card print-card" aria-labelledby="print-title"><div class="print-head"><h3 id="print-title">Copy-ready squad list</h3><button class="secondary" id="copyButton" type="button">▢ &nbsp;Copy Squad List</button></div><pre class="printout" id="printout"></pre><div class="total"><span>Total Boosted Rating</span><strong id="totalRating">0</strong></div></section>
+    </section>
+    <footer class="footer">Squadroom · Built for tournament managers</footer>
+  </main>
+  <script>
+    const input = document.getElementById('screenshots');
+    const dropZone = document.getElementById('dropZone');
+    const selectedFiles = document.getElementById('selectedFiles');
+    const fileCount = document.getElementById('fileCount');
+    const scanButton = document.getElementById('scanButton');
+    const statusBox = document.getElementById('status');
+    let files = [];
+    let squad = null;
+
+    function setFiles(next) {
+      files = Array.from(next || []);
+      fileCount.textContent = `${files.length} / 13`;
+      selectedFiles.replaceChildren();
+      files.forEach((file, index) => {
+        const chip = document.createElement('span');
+        chip.className = 'file-chip';
+        chip.textContent = `${index === 0 ? 'Pitch · ' : ''}${file.name}`;
+        selectedFiles.append(chip);
+      });
+      if (files.length > 13) setStatus('Choose no more than 13 images.', true);
+      else if (files.some((file) => !file.type.startsWith('image/'))) setStatus('Every selected file must be an image.', true);
+      else setStatus('');
+    }
+
+    function setStatus(message, isError = false) {
+      statusBox.textContent = message;
+      statusBox.classList.toggle('error', isError);
+    }
+
+    input.addEventListener('change', () => setFiles(input.files));
+    for (const eventName of ['dragenter', 'dragover']) dropZone.addEventListener(eventName, (event) => { event.preventDefault(); dropZone.classList.add('over'); });
+    for (const eventName of ['dragleave', 'drop']) dropZone.addEventListener(eventName, (event) => { event.preventDefault(); dropZone.classList.remove('over'); });
+    dropZone.addEventListener('drop', (event) => setFiles(event.dataTransfer.files));
+
+    scanButton.addEventListener('click', async () => {
+      if (!files.length) return setStatus('Add at least one screenshot to scan.', true);
+      if (files.length > 13) return setStatus('Choose no more than 13 images.', true);
+      if (files.some((file) => !file.type.startsWith('image/'))) return setStatus('Every selected file must be an image.', true);
+      const form = new FormData();
+      files.forEach((file) => form.append('screenshots', file));
+      scanButton.disabled = true;
+      scanButton.innerHTML = '<i class="spinner" aria-hidden="true"></i> Reading screenshots…';
+      setStatus('Matching the pitch view to the player lists. This can take a little while.');
+      try {
+        const response = await fetch('/api/register-squad', { method: 'POST', body: form });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || 'Could not process these screenshots.');
+        squad = result;
+        renderSquad();
+        document.getElementById('results').classList.add('visible');
+        setStatus('Squad found. Review the details and make any edits you need.');
+        document.getElementById('results').scrollIntoView({ behavior: 'smooth', block: 'start' });
+      } catch (error) {
+        setStatus(error.message || 'Something went wrong. Please try again.', true);
+      } finally {
+        scanButton.disabled = false;
+        scanButton.innerHTML = 'Scan my squad <span aria-hidden="true">→</span>';
+      }
+    });
+
+    function playerInput(value, className, label, type = 'text') {
+      const field = document.createElement('input');
+      field.type = type;
+      field.value = value ?? '';
+      field.className = className;
+      field.setAttribute('aria-label', label);
+      if (type === 'number') { field.min = '1'; field.max = '200'; field.step = '1'; }
+      field.addEventListener('input', updatePrintout);
+      return field;
+    }
+
+    function renderRoster(targetId, players, groupName) {
+      const container = document.getElementById(targetId);
+      container.replaceChildren();
+      players.forEach((player, index) => {
+        const row = document.createElement('div');
+        row.className = 'player-row';
+        const number = document.createElement('span');
+        number.className = 'player-index';
+        number.textContent = String(index + 1).padStart(2, '0');
+        row.append(number);
+        row.append(playerInput(player.position, '', `${groupName} ${index + 1} position`));
+        row.append(playerInput(player.name, '', `${groupName} ${index + 1} player name`));
+        row.append(playerInput(player.rating, 'rating', `${groupName} ${index + 1} boosted rating`, 'number'));
+        container.append(row);
+      });
+    }
+
+    function renderSquad() {
+      renderRoster('startingRows', squad.starting_xi, 'Starter');
+      renderRoster('subRows', squad.substitutes, 'Substitute');
+      const manualRows = document.getElementById('manualRows');
+      manualRows.replaceChildren();
+      for (let index = 0; index < 2; index += 1) {
+        const row = document.createElement('div');
+        row.className = 'manual-row';
+        row.append(playerInput('', '', `Extra player ${index + 1} name`));
+        row.append(playerInput('', 'rating', `Extra player ${index + 1} boosted rating`, 'number'));
+        manualRows.append(row);
+      }
+      updatePrintout();
+    }
+
+    function updatePrintout() {
+      if (!squad) return;
+      const lines = [];
+      let total = 0;
+      for (const [sectionId, title] of [['startingRows', 'STARTING XI'], ['subRows', 'SUBSTITUTES / RESERVES']]) {
+        lines.push(title);
+        document.getElementById(sectionId).querySelectorAll('.player-row').forEach((row) => {
+          const fields = row.querySelectorAll('input');
+          const name = fields[1].value.trim();
+          const ratingText = fields[2].value.trim();
+          const rating = Number(ratingText);
+          if (name && ratingText && Number.isFinite(rating)) total += rating;
+          lines.push(`${name || 'Unnamed player'} - ${ratingText || '—'}`);
+        });
+        lines.push('');
+      }
+      const extraPlayers = [];
+      document.getElementById('manualRows').querySelectorAll('.manual-row').forEach((row) => {
+        const fields = row.querySelectorAll('input');
+        const name = fields[0].value.trim();
+        const ratingText = fields[1].value.trim();
+        const rating = Number(ratingText);
+        if (name || ratingText) {
+          extraPlayers.push(`${name || 'Unnamed player'} - ${ratingText || '—'}`);
+          if (name && ratingText && Number.isFinite(rating)) total += rating;
+        }
+      });
+      if (extraPlayers.length) lines.push('ADDITIONAL / EXTRA PLAYERS', ...extraPlayers, '');
+      document.getElementById('printout').textContent = `${lines.join('\n').trim()}\n\nTotal Boosted Rating: ${total}`;
+      document.getElementById('totalRating').textContent = String(total);
+    }
+
+    document.getElementById('copyButton').addEventListener('click', async () => {
+      const button = document.getElementById('copyButton');
+      try {
+        await navigator.clipboard.writeText(document.getElementById('printout').textContent);
+        button.textContent = '✓  Copied';
+        setTimeout(() => { button.innerHTML = '▢ &nbsp;Copy Squad List'; }, 1500);
+      } catch {
+        const range = document.createRange();
+        range.selectNodeContents(document.getElementById('printout'));
+        const selection = window.getSelection();
+        selection.removeAllRanges();
+        selection.addRange(range);
+        button.textContent = 'Select and copy';
+      }
+    });
+  </script>
+</body>
+</html>
